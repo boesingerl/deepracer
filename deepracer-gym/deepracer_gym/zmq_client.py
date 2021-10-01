@@ -10,8 +10,8 @@ class DeepracerZMQClient:
         self.host = host
         self.port = port
         self.socket = zmq.Context().socket(zmq.REQ)
-        self.socket.set(zmq.SNDTIMEO, 20000)
-        self.socket.set(zmq.RCVTIMEO, 20000)
+        self.socket.set(zmq.SNDTIMEO, 200000)
+        self.socket.set(zmq.RCVTIMEO, 200000)
         self.socket.connect(f"tcp://{self.host}:{self.port}")
     
     def set_agent_ready(self):
