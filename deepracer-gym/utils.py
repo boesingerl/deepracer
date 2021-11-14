@@ -68,15 +68,16 @@ def segment_resize(img, init_thresh=160, denoising=False, size=(16,16)):
     return cv2.resize(side+mid, size) > 0
 
 def tensor_to_features(tensor, side_thresh=200, mid_thresh=160, sidelength_threshold=50):
-
-    assert tensor.ndim == 2
+    
+    batch_size = tensor.shape[0]
     
     # compute thresholded image (only white parts)
-    side_thresholded = tensor[20:] > side_thresh
-    mid_thresholded  = (tensor[20:] > mid_thresh)[None, None, :, :]
+    side_thresholded = tensor[:,:,20:] > side_thresh
+    mid_thresholded  = tensor[:,:,20:] > mid_thresh
     
     # dilate to keep them together
-    dilated = dilation(side_thresholded[None, None, :, :], torch.ones(5,20, device='cuda:0'), border_type='constant')
+    dilated = dilation(side_thresholded, torch.ones(5,20, device='cuda:0'), border_type='constant')
+    test = dilated
     connected_comp = connected_components(dilated, num_iterations=200)
     
     # keep connected components with large enough horizontal length
@@ -91,6 +92,7 @@ def tensor_to_features(tensor, side_thresh=200, mid_thresh=160, sidelength_thres
             
     side = (connected_comp[..., None] == torch.tensor(kept_labels, device='cuda:0')).any(-1).double()
 
+    test2 = side
     # dilate side line to remove it from rest of image
     dilated_side = dilation(side, torch.ones(10,7,device='cuda:0'), border_type='constant')
     removed_upper = ((mid_thresholded.double() - dilated_side) > 0).double()
@@ -100,9 +102,10 @@ def tensor_to_features(tensor, side_thresh=200, mid_thresh=160, sidelength_thres
     
     # close to join midlines together
     closed_midline = closing(open_mid, torch.ones(40,40, device='cuda:0'), border_type='geodesic')
-    closed_midline = draw_rectangle(closed_midline, torch.tensor([[[0, 0, 160, 120]]], device='cuda:0'), fill=torch.zeros(1, device='cuda:0'))
+    closed_midline = draw_rectangle(closed_midline, torch.tensor([[[0, 0, 160, 120]] for _ in range(batch_size)], device='cuda:0'), fill=torch.zeros(1, device='cuda:0'))
     
     # reassemble together in a single image
-    resized_img = (resize(closed_midline + side,(16,16), interpolation='area') > 0.2).int()
+    resized_mid  = (resize(closed_midline,(16,16), interpolation='area') > 0.2).double()*0.5
+    resized_side = (resize(side,(16,16), interpolation='area') > 0.2).double()
     
-    return resized_img
+    return resized_mid + resized_side
