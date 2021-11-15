@@ -9,9 +9,11 @@ from stable_baselines3.common.monitor import Monitor
 
 class BasicExtractor(BaseFeaturesExtractor):
     """
+    Basic CNN Feature extractor with two layers, 16 and 32 channels
     :param observation_space: (gym.Space)
     :param features_dim: (int) Number of features extracted.
         This corresponds to the number of unit for the last layer.
+    :param num_envs: (int) Number of dummy environments in which this feature extractor is used
     """
 
     def __init__(self, observation_space, features_dim = 128, num_envs=1, **kwargs):

@@ -13,14 +13,9 @@ from utils.image import get_otsu, get_disparity
 
 class ImageWrap(gym.Wrapper):
     """
-    A monitor wrapper for Gym environments, it is used to know the episode reward, length, time and other data.
-
-    :param env: The environment
-    :param filename: the location to save a log file, can be None for no log
-    :param allow_early_resets: allows the reset of the environment before it is done
-    :param reset_keywords: extra keywords for the reset call,
-        if extra parameters are needed at reset
-    :param info_keywords: extra information to log, from the information return of env.step()
+    An Image wrapper for our custom deepracer environment
+    Applies otsu thresholding, and can apply disparity maps (disabled by default)
+    Resizes observations into given size
     """
 
 
@@ -36,7 +31,7 @@ class ImageWrap(gym.Wrapper):
         self.observation_space = gym.spaces.Box(low=0,high=255,shape=size+(5 if disparity else 4,), dtype='uint8')
 
     def transform_img(self,obs,disparity=False):
-
+        """Transforms image by stacking otsu thresholding and disparity (if enabled) to itself"""
         # resize and get individual
         obs = cv2.resize(obs, dsize=self.size, interpolation=cv2.INTER_CUBIC)
         left, right = obs[:,:,0], obs[:,:,1]

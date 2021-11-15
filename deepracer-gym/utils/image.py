@@ -19,10 +19,12 @@ from kornia.geometry.transform import resize
 from skimage.filters import threshold_multiotsu
 
 def get_otsu(img, classes=3):
+    """Applies otsu multi-class thresholding on an image, by default with 3 classes"""
     thresholds = threshold_multiotsu(img, classes=classes)
     return np.digitize(img, bins=thresholds)*127
 
 def get_disparity(left, right):
+    """Applies disparity map from given left and right images"""
     # Pre-processing by mean adjusting the images
     L_gray = left - np.mean(left)
     R_gray = right - np.mean(right)
@@ -37,7 +39,7 @@ def get_disparity(left, right):
     return cv2.medianBlur(D_map, 13)
 
 def keep_long_components(img, threshold=50):
-    
+    """Applies blob detection using skimage measure label and removes all blob with horizontal length less than threshold"""
     blobs_labels = measure.label(img, background=0)
     kept_labels = []
 
@@ -50,7 +52,7 @@ def keep_long_components(img, threshold=50):
     return np.where(np.isin(blobs_labels, kept_labels), 255, 0)
 
 def segment_img(img, init_thresh=160, denoising=False):
-
+    """Segments road image and returns image with mask of the sidelines only, and middle dotted line only"""
     if denoising:
         img = cv2.fastNlMeansDenoising(img.astype('uint8'),20,10,21)
         
@@ -84,11 +86,12 @@ def segment_img(img, init_thresh=160, denoising=False):
     return long_comp.astype(float)/255, middle_road
 
 def segment_resize(img, init_thresh=160, denoising=False, size=(16,16)):
+    """Applies segment image and resizes image to size given"""
     side, mid = segment_img(img, init_thresh=init_thresh, denoising=denoising)
     return cv2.resize(side+mid, size) > 0
 
 def tensor_to_features(tensor, side_thresh=200, mid_thresh=160, sidelength_threshold=50):
-    
+    """Segments tensor into parts of middle dotted line, background and sidelines"""
     batch_size = tensor.shape[0]
     
     # compute thresholded image (only white parts)
